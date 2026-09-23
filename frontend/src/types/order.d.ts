@@ -3,6 +3,20 @@ import { ServiceItem } from './service';
 import { User } from './auth';
 import { Worker } from './worker';
 
+export type DispatchFailureReason = 'NO_SKILLED_WORKER' | 'SCHEDULE_CONFLICT';
+
+export interface DispatchResult {
+  matched: boolean;
+  workerId?: string;
+  workerName?: string;
+  rating?: number;
+  unfinishedOrders?: number;
+  candidateCount: number;
+  failureReason?: DispatchFailureReason;
+  message: string;
+  matchedAt: string;
+}
+
 export interface ServiceOrder {
   id: string;
   orderNo: string;
@@ -19,6 +33,7 @@ export interface ServiceOrder {
   rating?: number;
   comment?: string;
   cancelReason?: string;
+  dispatch?: DispatchResult;
   createdAt: string;
   updatedAt: string;
   serviceItem: ServiceItem;

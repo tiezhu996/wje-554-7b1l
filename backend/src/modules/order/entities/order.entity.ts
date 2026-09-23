@@ -2,6 +2,7 @@ import { OrderStatus } from '../../../constants/enums';
 import { UserEntity } from '../../auth/auth.service';
 import { ServiceEntity } from '../../service/entities/service.entity';
 import { WorkerEntity } from '../../worker/entities/worker.entity';
+import { DispatchResult } from './dispatch.entity';
 
 export interface OrderEntity {
   id: string;
@@ -19,6 +20,7 @@ export interface OrderEntity {
   rating?: number;
   comment?: string;
   cancelReason?: string;
+  dispatch?: DispatchResult;
   createdAt: string;
   updatedAt: string;
   serviceItem?: ServiceEntity;

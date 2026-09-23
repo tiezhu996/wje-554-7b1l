@@ -25,7 +25,8 @@ export const services: ServiceEntity[] = [
 export const workers: WorkerEntity[] = [
   { id: 'w-zhao', userId: 'u-worker', name: '赵明', phone: '13800000002', specialties: [ServiceCategory.PLUMBING, ServiceCategory.REPAIR], rating: 4.9, totalOrders: 320, status: WorkerStatus.ONLINE, bio: '擅长管道和五金维修，响应快。', experience: 9, idCardNo: '310***********3218', createdAt: iso() },
   { id: 'w-chen', userId: 'u-worker-2', name: '陈洁', phone: '13800000003', specialties: [ServiceCategory.CLEANING], rating: 4.8, totalOrders: 286, status: WorkerStatus.BUSY, bio: '长期服务家庭深度保洁和开荒保洁。', experience: 6, idCardNo: '330***********1221', createdAt: iso() },
-  { id: 'w-liu', userId: 'u-worker-3', name: '刘峰', phone: '13800000004', specialties: [ServiceCategory.MOVING, ServiceCategory.ERRAND], rating: 4.7, totalOrders: 198, status: WorkerStatus.PENDING_REVIEW, bio: '同城搬运与即时跑腿。', experience: 4, idCardNo: '440***********8120', createdAt: iso() }
+  { id: 'w-liu', userId: 'u-worker-3', name: '刘峰', phone: '13800000004', specialties: [ServiceCategory.MOVING, ServiceCategory.ERRAND], rating: 4.7, totalOrders: 198, status: WorkerStatus.PENDING_REVIEW, bio: '同城搬运与即时跑腿。', experience: 4, idCardNo: '440***********8120', createdAt: iso() },
+  { id: 'w-sun', userId: 'u-worker-4', name: '孙强', phone: '13800000005', specialties: [ServiceCategory.PLUMBING, ServiceCategory.MOVING], rating: 4.5, totalOrders: 87, status: WorkerStatus.ONLINE, bio: '管道疏通与同城搬运，价格实在。', experience: 3, idCardNo: '510***********6654', createdAt: iso() }
 ];
 
 export const orders: OrderEntity[] = [

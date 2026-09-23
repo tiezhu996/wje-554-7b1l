@@ -1,4 +1,4 @@
-import { Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Grid, Stack, TextField, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { OrderStatus, UserRole } from '../constants/enums';
@@ -13,28 +13,26 @@ import { datetime, money } from '../utils/format';
 export function OrderDetail() {
   const { id = '' } = useParams();
   const role = useAuthStore((state) => state.user?.role);
-  const { current, loadOrder, updateStatus, cancel, rate } = useOrderStore();
+  const { current, loadOrder, dispatch: runDispatch, updateStatus, cancel, rate } = useOrderStore();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('服务准时，沟通顺畅。');
 
   useEffect(() => { loadOrder(id); }, [id, loadOrder]);
 
   const actions = useMemo(() => {
-    if (!current) return [];
-    if (role === UserRole.WORKER) {
-      const map: Partial<Record<OrderStatus, [string, OrderStatus]>> = {
-        [OrderStatus.ASSIGNED]: ['接单', OrderStatus.ACCEPTED],
-        [OrderStatus.ACCEPTED]: ['出发', OrderStatus.ON_THE_WAY],
-        [OrderStatus.ON_THE_WAY]: ['开始服务', OrderStatus.IN_PROGRESS],
-        [OrderStatus.IN_PROGRESS]: ['完工', OrderStatus.COMPLETED]
-      };
-      return map[current.status] ? [map[current.status]!] : [];
-    }
-    if (role === UserRole.ADMIN && current.status === OrderStatus.PENDING) return [['派单给默认技师', OrderStatus.ASSIGNED] as [string, OrderStatus]];
-    return [];
+    if (!current || role !== UserRole.WORKER) return [];
+    const map: Partial<Record<OrderStatus, [string, OrderStatus]>> = {
+      [OrderStatus.ASSIGNED]: ['接单', OrderStatus.ACCEPTED],
+      [OrderStatus.ACCEPTED]: ['出发', OrderStatus.ON_THE_WAY],
+      [OrderStatus.ON_THE_WAY]: ['开始服务', OrderStatus.IN_PROGRESS],
+      [OrderStatus.IN_PROGRESS]: ['完工', OrderStatus.COMPLETED]
+    };
+    return map[current.status] ? [map[current.status]!] : [];
   }, [current, role]);
 
   if (!current) return null;
+
+  const dispatchResult = current.dispatch;
 
   return (
     <>
@@ -57,6 +55,28 @@ export function OrderDetail() {
               {role !== UserRole.WORKER && ![OrderStatus.CANCELLED, OrderStatus.RATED].includes(current.status) && <Button color="error" variant="outlined" onClick={() => cancel(current.id, '用户取消')}>取消订单</Button>}
             </Stack>
           </CardContent></Card>
+          {role === UserRole.ADMIN && current.status === OrderStatus.PENDING && (
+            <Card sx={{ mt: 3 }}><CardContent>
+              <Typography variant="h6">智能派单</Typography>
+              {dispatchResult ? (
+                <Alert severity={dispatchResult.matched ? 'success' : 'warning'} sx={{ mt: 2 }}>
+                  {dispatchResult.message}（匹配时间：{datetime(dispatchResult.matchedAt)}）
+                </Alert>
+              ) : (
+                <Typography color="text.secondary" sx={{ mt: 2 }}>
+                  尚未执行智能派单。系统将按服务类目筛选技师，避开已有订单占用时段，并优先推荐评分高、未完成单少的技师。
+                </Typography>
+              )}
+              <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                <Button variant="outlined" onClick={() => runDispatch(current.id)}>{dispatchResult ? '重新匹配' : '智能派单'}</Button>
+                {dispatchResult?.matched && dispatchResult.workerId && (
+                  <Button variant="contained" onClick={() => updateStatus(current.id, OrderStatus.ASSIGNED, dispatchResult.workerId)}>
+                    确认派单给 {dispatchResult.workerName}
+                  </Button>
+                )}
+              </Stack>
+            </CardContent></Card>
+          )}
         </Grid>
         <Grid item xs={12} lg={4}>
           <Card sx={{ mb: 3 }}><CardContent>

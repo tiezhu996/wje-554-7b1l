@@ -3,7 +3,9 @@ import { OrderStatus, UserRole } from '../../constants/enums';
 import { orders, services, users, workers } from '../demo-data';
 import { NotificationService } from '../notification/notification.service';
 import { WorkerService } from '../worker/worker.service';
+import { DispatchService } from './dispatch.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { DispatchFailureReason } from './entities/dispatch.entity';
 import { OrderEntity } from './entities/order.entity';
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
@@ -19,7 +21,11 @@ const transitions: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly workerService: WorkerService, private readonly notification: NotificationService) {}
+  constructor(
+    private readonly workerService: WorkerService,
+    private readonly notification: NotificationService,
+    private readonly dispatchService: DispatchService
+  ) {}
 
   list(user: { sub: string; role: UserRole }, status?: OrderStatus) {
     return orders.filter((order) => {
@@ -61,12 +67,28 @@ export class OrderService {
     return this.hydrate(order);
   }
 
+  dispatch(user: { sub: string; role: UserRole }, id: string) {
+    if (user.role !== UserRole.ADMIN) throw new ForbiddenException('仅 Admin 可执行智能派单');
+    const order = this.mustFind(id);
+    if (order.status !== OrderStatus.PENDING) throw new BadRequestException('仅待派单订单可执行智能派单');
+    order.dispatch = this.dispatchService.match(order);
+    order.updatedAt = new Date().toISOString();
+    return this.hydrate(order);
+  }
+
   updateStatus(user: { sub: string; role: UserRole }, id: string, status: OrderStatus, workerId?: string) {
     const order = this.mustFind(id);
     if (!transitions[order.status].includes(status)) throw new BadRequestException(`订单不能从 ${order.status} 流转到 ${status}`);
     if (status === OrderStatus.ASSIGNED) {
       if (user.role !== UserRole.ADMIN) throw new ForbiddenException('仅 Admin 可派单');
-      order.workerId = workerId || this.workerService.firstOnline().id;
+      const matched = order.dispatch?.matched ? order.dispatch : undefined;
+      if (!matched?.workerId) throw new BadRequestException('请先执行智能派单，确认匹配结果后再派单');
+      const targetWorkerId = workerId || matched.workerId;
+      if (targetWorkerId !== matched.workerId) throw new BadRequestException(`只能派单给匹配结果中的技师 ${matched.workerName}，如需更换请重新智能派单`);
+      const failure = this.dispatchService.validate(order, targetWorkerId);
+      if (failure === DispatchFailureReason.NO_SKILLED_WORKER) throw new BadRequestException('该技师技能与订单服务类目不符或已不可派单，请重新智能派单');
+      if (failure === DispatchFailureReason.SCHEDULE_CONFLICT) throw new BadRequestException('该技师在预约时段已有订单占用，请重新智能派单');
+      order.workerId = targetWorkerId;
     } else if ([OrderStatus.ACCEPTED, OrderStatus.ON_THE_WAY, OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED].includes(status)) {
       const worker = this.workerService.findByUserId(user.sub);
       if (user.role !== UserRole.WORKER || !worker || worker.id !== order.workerId) throw new ForbiddenException('仅订单技师可更新该状态');

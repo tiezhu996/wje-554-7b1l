@@ -26,6 +26,11 @@ export class OrderController {
     return this.order.create(user, dto);
   }
 
+  @Post(':id/dispatch')
+  dispatch(@CurrentUser() user: { sub: string; role: UserRole }, @Param('id') id: string) {
+    return this.order.dispatch(user, id);
+  }
+
   @Patch(':id/status')
   updateStatus(@CurrentUser() user: { sub: string; role: UserRole }, @Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
     return this.order.updateStatus(user, id, dto.status, dto.workerId);
