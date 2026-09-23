@@ -1,7 +1,7 @@
-import { Box, Card, CardContent, Grid, MenuItem, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
+import { Alert, Box, Card, CardContent, Grid, MenuItem, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { OrderStatus, UserRole } from '../constants/enums';
+import { DispatchFailureReason, OrderStatus, UserRole } from '../constants/enums';
 import { OrderStatusFlow } from '../components/common/OrderStatusFlow';
 import { PageHeader } from '../components/common/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -9,6 +9,11 @@ import { EmptyState } from '../components/common/EmptyState';
 import { useOrderStore } from '../stores/orderStore';
 import { useAuthStore } from '../stores/authStore';
 import { datetime, money } from '../utils/format';
+
+const pendingReasonText: Record<DispatchFailureReason, string> = {
+  [DispatchFailureReason.SKILL_MISMATCH]: '技能不符：暂无擅长该类目且可派的技师',
+  [DispatchFailureReason.SCHEDULE_CONFLICT]: '档期冲突：技能匹配技师该时段均被占用'
+};
 
 export function OrderList() {
   const role = useAuthStore((state) => state.user?.role);
@@ -50,6 +55,11 @@ export function OrderList() {
                 <Typography sx={{ mt: 1 }}>{order.serviceItem.name} · {money(order.totalPrice)}</Typography>
                 <Typography color="text.secondary">{order.address}{order.addressDetail} · {datetime(order.scheduledTime)}</Typography>
                 <Typography color="text.secondary">技师：{order.worker?.name || '待派单'} · 客户：{order.customer.nickname}</Typography>
+                {role === UserRole.ADMIN && order.status === OrderStatus.PENDING && order.dispatchFailureReason && (
+                  <Alert severity="warning" sx={{ mt: 1, py: 0 }}>
+                    {pendingReasonText[order.dispatchFailureReason as DispatchFailureReason]}
+                  </Alert>
+                )}
                 <Box sx={{ mt: 2, overflowX: 'auto' }}><OrderStatusFlow status={order.status} compact /></Box>
               </CardContent>
             </Card>

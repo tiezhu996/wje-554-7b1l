@@ -34,3 +34,8 @@ export enum ServiceStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE'
 }
+
+export enum DispatchFailureReason {
+  SKILL_MISMATCH = 'SKILL_MISMATCH',
+  SCHEDULE_CONFLICT = 'SCHEDULE_CONFLICT'
+}
